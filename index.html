@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Content Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            transition: max-width 0.3s ease;
+        }
+        
+        .container.expanded {
+            max-width: 95%;
+            width: 95%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #content-display {
+            display: none;
+            margin-top: 20px;
+            padding: 0;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+        }
+
+        #content-display.show {
+            display: block;
+        }
+
+        #content-display iframe {
+            width: 100%;
+            min-height: 600px;
+            height: 80vh;
+            border: none;
+            display: block;
+        }
+        
+        #content-display pre {
+            margin: 0;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Secure Content Viewer</h1>
+        
+        <form id="decryptForm">
+            <div class="form-group">
+                <label for="indexNumber">Index Number:</label>
+                <input type="text" id="indexNumber" name="indexNumber" required placeholder="Enter your index number">
+            </div>
+            
+            <div class="form-group">
+                <label for="id">ID:</label>
+                <input type="password" id="id" name="id" required placeholder="Enter your ID">
+            </div>
+            
+            <button type="submit">Calculate GPA</button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div id="content-display"></div>
+    </div>
+
+    <script src="crypto.js"></script>
+</body>
+</html>

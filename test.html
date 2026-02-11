@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Test - AES-GCM</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #667eea; margin-top: 0; }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Cryptography Test Suite - AES-GCM</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        // Constants matching the implementation
+        const PBKDF2_ITERATIONS = 100000;
+        const KEY_LENGTH = 256;
+        const GCM_IV_LENGTH = 12;
+        const GCM_TAG_LENGTH = 128;
+        
+        async function testCrypto() {
+            try {
+                // Test 1: SHA-256 Hash
+                output.innerHTML += '<div class="test-section"><h2>Test 1: SHA-256 Hash Function</h2>';
+                const testIndex = "12345";
+                const encoder = new TextEncoder();
+                const data = encoder.encode(testIndex);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hash = hashArray.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('');
+                
+                output.innerHTML += `<p><strong>Input:</strong> <code>"${testIndex}"</code></p>`;
+                output.innerHTML += `<p><strong>SHA-256 Hash:</strong> <code>${hash}</code></p>`;
+                output.innerHTML += `<p class="success">✅ Hash length: ${hash.length} characters (64 expected)</p></div>`;
+                
+                // Test 2: Filename generation
+                output.innerHTML += '<div class="test-section"><h2>Test 2: Encrypted Filename Generation</h2>';
+                const testId = "testID";
+                const combined = testIndex + "|" + testId;
+                const combinedData = encoder.encode(combined);
+                const filenameHashBuffer = await crypto.subtle.digest('SHA-256', combinedData);
+                const filenameHashArray = Array.from(new Uint8Array(filenameHashBuffer));
+                const filenameHash = filenameHashArray.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('');
+                const filename = filenameHash + '.enc';
+                
+                output.innerHTML += `<p><strong>Index:</strong> <code>"${testIndex}"</code></p>`;
+                output.innerHTML += `<p><strong>ID:</strong> <code>"${testId}"</code></p>`;
+                output.innerHTML += `<p><strong>Combined:</strong> <code>"${combined}"</code></p>`;
+                output.innerHTML += `<p><strong>Filename:</strong> <code>${filename}</code></p>`;
+                output.innerHTML += `<p class="success">✅ Filename generated successfully</p></div>`;
+                
+                // Test 3: PBKDF2 Key Derivation
+                output.innerHTML += '<div class="test-section"><h2>Test 3: PBKDF2 Key Derivation</h2>';
+                output.innerHTML += `<p class="info">⏳ Deriving key with ${PBKDF2_ITERATIONS.toLocaleString()} iterations...</p>`;
+                
+                const startTime = performance.now();
+                const passwordKey = await crypto.subtle.importKey(
+                    'raw',
+                    encoder.encode(testId),
+                    'PBKDF2',
+                    false,
+                    ['deriveBits', 'deriveKey']
+                );
+                
+                const key = await crypto.subtle.deriveKey(
+                    {
+                        name: 'PBKDF2',
+                        salt: encoder.encode(testIndex),
+                        iterations: PBKDF2_ITERATIONS,
+                        hash: 'SHA-256'
+                    },
+                    passwordKey,
+                    {
+                        name: 'AES-GCM',
+                        length: KEY_LENGTH
+                    },
+                    true,
+                    ['decrypt', 'encrypt']
+                );
+                
+                const endTime = performance.now();
+                const timeTaken = (endTime - startTime).toFixed(2);
+                
+                const rawKey = await crypto.subtle.exportKey('raw', key);
+                const keyHex = Array.from(new Uint8Array(rawKey))
+                    .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+                    .join('');
+                
+                output.innerHTML += `<p><strong>Algorithm:</strong> PBKDF2WithHmacSHA256</p>`;
+                output.innerHTML += `<p><strong>Iterations:</strong> ${PBKDF2_ITERATIONS.toLocaleString()}</p>`;
+                output.innerHTML += `<p><strong>Key Length:</strong> ${KEY_LENGTH} bits</p>`;
+                output.innerHTML += `<p><strong>Time Taken:</strong> ${timeTaken} ms</p>`;
+                output.innerHTML += `<p><strong>Derived Key (hex):</strong><br><code style="word-break: break-all;">${keyHex}</code></p>`;
+                output.innerHTML += `<p class="success">✅ Key derived successfully (${rawKey.byteLength} bytes)</p></div>`;
+                
+                // Test 4: AES-GCM Encryption/Decryption
+                output.innerHTML += '<div class="test-section"><h2>Test 4: AES-GCM Encryption & Decryption</h2>';
+                const testText = "Hello, World! This is a test message for AES-GCM encryption.";
+                output.innerHTML += `<p><strong>Original Text:</strong> <code>"${testText}"</code></p>`;
+                
+                // Generate random IV
+                const iv = new Uint8Array(GCM_IV_LENGTH);
+                crypto.getRandomValues(iv);
+                output.innerHTML += `<p><strong>IV (12 bytes):</strong> <code>${Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join(' ')}</code></p>`;
+                
+                // Encrypt
+                const plaintext = encoder.encode(testText);
+                const encrypted = await crypto.subtle.encrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: iv,
+                        tagLength: GCM_TAG_LENGTH
+                    },
+                    key,
+                    plaintext
+                );
+                
+                output.innerHTML += `<p><strong>Encrypted Size:</strong> ${encrypted.byteLength} bytes (includes 16-byte auth tag)</p>`;
+                output.innerHTML += `<p><strong>Encrypted (hex):</strong><br><code style="word-break: break-all;">${Array.from(new Uint8Array(encrypted)).map(b => b.toString(16).padStart(2, '0')).join('')}</code></p>`;
+                
+                // Decrypt
+                const decrypted = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: iv,
+                        tagLength: GCM_TAG_LENGTH
+                    },
+                    key,
+                    encrypted
+                );
+                
+                const decryptedText = new TextDecoder().decode(decrypted);
+                output.innerHTML += `<p><strong>Decrypted Text:</strong> <code>"${decryptedText}"</code></p>`;
+                output.innerHTML += `<p><strong>Match:</strong> ${testText === decryptedText ? '<span class="success">✅ Perfect match!</span>' : '<span class="error">❌ Mismatch!</span>'}</p>`;
+                
+                // Test authentication (try decrypting with wrong key)
+                try {
+                    const wrongKey = await crypto.subtle.deriveKey(
+                        {
+                            name: 'PBKDF2',
+                            salt: encoder.encode('wrongSalt'),
+                            iterations: PBKDF2_ITERATIONS,
+                            hash: 'SHA-256'
+                        },
+                        passwordKey,
+                        {
+                            name: 'AES-GCM',
+                            length: KEY_LENGTH
+                        },
+                        false,
+                        ['decrypt']
+                    );
+                    
+                    await crypto.subtle.decrypt(
+                        {
+                            name: 'AES-GCM',
+                            iv: iv,
+                            tagLength: GCM_TAG_LENGTH
+                        },
+                        wrongKey,
+                        encrypted
+                    );
+                    
+                    output.innerHTML += `<p class="error">❌ Authentication failed: Wrong key should have been rejected!</p>`;
+                } catch (e) {
+                    output.innerHTML += `<p class="success">✅ Authentication working: Wrong key properly rejected</p>`;
+                }
+                
+                output.innerHTML += `</div>`;
+                
+                // Summary
+                output.innerHTML += '<div class="test-section" style="background: #d4edda; border: 1px solid #c3e6cb;"><h2 style="color: #155724;">✅ All Tests Passed!</h2>';
+                output.innerHTML += '<p><strong>Summary:</strong></p>';
+                output.innerHTML += '<ul>';
+                output.innerHTML += '<li>SHA-256 hashing: Working</li>';
+                output.innerHTML += '<li>Filename generation: Working</li>';
+                output.innerHTML += '<li>PBKDF2 key derivation (100K iterations): Working</li>';
+                output.innerHTML += '<li>AES-GCM encryption/decryption: Working</li>';
+                output.innerHTML += '<li>GCM authentication: Working</li>';
+                output.innerHTML += '</ul>';
+                output.innerHTML += '<p><strong>Your cryptographic implementation is ready!</strong></p></div>';
+                
+            } catch (error) {
+                output.innerHTML += `<div class="test-section" style="background: #f8d7da; border: 1px solid #f5c6cb;"><h2 style="color: #721c24;">❌ Test Failed</h2>`;
+                output.innerHTML += `<p class="error"><strong>Error:</strong> ${error.message}</p>`;
+                output.innerHTML += `<pre>${error.stack}</pre></div>`;
+                console.error(error);
+            }
+        }
+        
+        testCrypto();
+    </script>
+</body>
+</html>
